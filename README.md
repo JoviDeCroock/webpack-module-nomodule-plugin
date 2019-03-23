@@ -25,3 +25,7 @@ The rest will be handled for you!
 ## Example
 
 https://github.com/JoviDeCroock/POC-ModularLegacyBuild
+
+## Installation
+
+`npm install --save-dev webpack-module-nomodule-plugin`
