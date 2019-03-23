@@ -85,17 +85,12 @@ class HtmlWebpackEsmodulesPlugin {
             innerHTML: safariFix,
           }
 
-          // Make our array look like [modern, script, legacy]
-          if (this.mode === 'modern') {
-            body.push(safariFixScript);
-          } else {
-            body = [safariFixScript, ...body];
-          }
+          body.push(safariFixScript);
+          body.push(...existingAssets);
 
-          if (this.mode === 'modern') {
-            body.push(...existingAssets);
-          } else {
-            body = [...existingAssets, ...body];
+          // Make our array look like [modern, script, legacy]
+          if (this.mode === 'legacy') {
+            body.reverse();
           }
           fs.removeSync(tempFilename);
           cb();
