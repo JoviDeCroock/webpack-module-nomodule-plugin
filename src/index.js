@@ -25,82 +25,96 @@ class HtmlWebpackEsmodulesPlugin {
 
   apply(compiler) {
     compiler.hooks.compilation.tap(ID, compilation => {
-      HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tapAsync(
-        ID,
-        ({ plugin, bodyTags: body, headTags: head }, cb) => {
-          const targetDir = compiler.options.output.path;
-          // get stats, write to disk
-          const htmlName = path.basename(plugin.options.filename);
-          // Watch out for output files in sub directories
-          const htmlPath = path.dirname(plugin.options.filename);
-          // Make the temporairy html to store the scripts in
-          const tempFilename = path.join(
-            targetDir,
-            htmlPath,
-            `assets-${htmlName}.json`
-          );
-          // If this file does not exist we are in iteration 1
-          if (!fs.existsSync(tempFilename)) {
-            fs.mkdirpSync(path.dirname(tempFilename));
-            // Only keep the scripts so we can't add css etc twice.
-            const newBody = body.filter(
-              a => a.tagName === 'script' && a.attributes
-            );
-            if (this.mode === 'legacy') {
-              // Empty nomodule in legacy build
-              newBody.forEach(a => (a.attributes.nomodule = ''));
-            } else {
-              // Module in the new build
-              newBody.forEach(a => (a.attributes.type = 'module'));
-            }
-            // Write it!
-            fs.writeFileSync(tempFilename, JSON.stringify(newBody));
-            // Tell the compiler to continue.
-            return cb();
-          }
-          // Draw the existing html because we are in iteration 2.
-          const existingAssets = JSON.parse(
-            fs.readFileSync(tempFilename, 'utf-8')
-          );
-
-          if (this.mode === 'modern') {
-            // If we are in modern make the type a module.
-            body.forEach(tag => {
-              if (tag.tagName === 'script' && tag.attributes) {
-                tag.attributes.type = 'module';
-              }
-            });
-          } else {
-            // If we are in legacy fill nomodule.
-            body.forEach(tag => {
-              if (tag.tagName === 'script' && tag.attributes) {
-                tag.attributes.nomodule = '';
-              }
-            });
-          }
-
-          const safariFixScript = {
-            tagName: 'script',
-            closeTag: true,
-            innerHTML: safariFix,
-          }
-
-          body.push(safariFixScript);
-          body.push(...existingAssets);
-
-          // Make our array look like [modern, script, legacy]
-          if (this.mode === 'legacy') {
-            body.reverse();
-          }
-          fs.removeSync(tempFilename);
-          cb();
-        }
-      );
-
-       HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(ID, data => {
-        data.html = data.html.replace(/\snomodule="">/g, ' nomodule>');
-      });
+      if (HtmlWebpackPlugin.getHooks) {
+        HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tapAsync(
+          ID,
+          this.alterAssetTagGroups.bind(this, compiler)
+        );
+        HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(ID, this.beforeEmitHtml.bind(this));
+      } else {
+        compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync(
+          ID,
+          this.alterAssetTagGroups.bind(this, compiler)
+        );
+        compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tap(ID, this.beforeEmitHtml.bind(this));
+      }
     });
+  }
+
+  beforeEmitHtml(data) {
+    data.html = data.html.replace(/\snomodule="">/g, ' nomodule>');
+  }
+
+  alterAssetTagGroups(compiler, { plugin, bodyTags: body, ...rest }, cb) {
+    if (!body) {
+      body = rest.body;
+    }
+    const targetDir = compiler.options.output.path;
+    // get stats, write to disk
+    const htmlName = path.basename(plugin.options.filename);
+    // Watch out for output files in sub directories
+    const htmlPath = path.dirname(plugin.options.filename);
+    // Make the temporairy html to store the scripts in
+    const tempFilename = path.join(
+      targetDir,
+      htmlPath,
+      `assets-${htmlName}.json`
+    );
+    // If this file does not exist we are in iteration 1
+    if (!fs.existsSync(tempFilename)) {
+      fs.mkdirpSync(path.dirname(tempFilename));
+      // Only keep the scripts so we can't add css etc twice.
+      const newBody = body.filter(
+        a => a.tagName === 'script' && a.attributes
+      );
+      if (this.mode === 'legacy') {
+        // Empty nomodule in legacy build
+        newBody.forEach(a => (a.attributes.nomodule = ''));
+      } else {
+        // Module in the new build
+        newBody.forEach(a => (a.attributes.type = 'module'));
+      }
+      // Write it!
+      fs.writeFileSync(tempFilename, JSON.stringify(newBody));
+      // Tell the compiler to continue.
+      return cb();
+    }
+    // Draw the existing html because we are in iteration 2.
+    const existingAssets = JSON.parse(
+      fs.readFileSync(tempFilename, 'utf-8')
+    );
+
+    if (this.mode === 'modern') {
+      // If we are in modern make the type a module.
+      body.forEach(tag => {
+        if (tag.tagName === 'script' && tag.attributes) {
+          tag.attributes.type = 'module';
+        }
+      });
+    } else {
+      // If we are in legacy fill nomodule.
+      body.forEach(tag => {
+        if (tag.tagName === 'script' && tag.attributes) {
+          tag.attributes.nomodule = '';
+        }
+      });
+    }
+
+    const safariFixScript = {
+      tagName: 'script',
+      closeTag: true,
+      innerHTML: safariFix,
+    }
+
+    body.push(safariFixScript);
+    body.push(...existingAssets);
+
+    // Make our array look like [modern, script, legacy]
+    if (this.mode === 'legacy') {
+      body.reverse();
+    }
+    fs.removeSync(tempFilename);
+    cb();
   }
 }
 
