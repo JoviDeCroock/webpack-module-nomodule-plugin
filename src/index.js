@@ -8,7 +8,8 @@ const ID = 'html-webpack-esmodules-plugin';
 const safariFix = `(function(){var d=document;var c=d.createElement('script');if(!('noModule' in c)&&'onbeforeload' in c){var s=!1;d.addEventListener('beforeload',function(e){if(e.target===c){s=!0}else if(!e.target.hasAttribute('nomodule')||!s){return}e.preventDefault()},!0);c.type='module';c.src='.';d.head.appendChild(c);c.remove()}}())`;
 
 class HtmlWebpackEsmodulesPlugin {
-  constructor(mode = 'modern') {
+  constructor(mode = 'modern', async = false) {
+    this.async = async;
     switch (mode) {
       case 'module':
       case 'modern':
@@ -51,7 +52,10 @@ class HtmlWebpackEsmodulesPlugin {
               newBody.forEach(a => (a.attributes.nomodule = ''));
             } else {
               // Module in the new build
-              newBody.forEach(a => (a.attributes.type = 'module'));
+              newBody.forEach(a => {
+                a.attributes.type = 'module';
+                if (this.async) a.attributes.async = '';
+              });
             }
             // Write it!
             fs.writeFileSync(tempFilename, JSON.stringify(newBody));
@@ -68,6 +72,7 @@ class HtmlWebpackEsmodulesPlugin {
             body.forEach(tag => {
               if (tag.tagName === 'script' && tag.attributes) {
                 tag.attributes.type = 'module';
+                if (this.async) tag.attributes.async = '';
               }
             });
           } else {
@@ -98,7 +103,8 @@ class HtmlWebpackEsmodulesPlugin {
       );
 
        HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(ID, data => {
-        data.html = data.html.replace(/\snomodule="">/g, ' nomodule>');
+        data.html = data.html.replace(/\snomodule=""/g, ' nomodule>');
+        data.html = data.html.replace(/\sasync=""/g, ' async');
       });
     });
   }
