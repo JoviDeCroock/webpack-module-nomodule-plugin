@@ -5,11 +5,20 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const fs = require('fs-extra');
 
 const ID = 'html-webpack-esmodules-plugin';
-const safariFix = `(function(){var d=document;var c=d.createElement('script');if(!('noModule' in c)&&'onbeforeload' in c){var s=!1;d.addEventListener('beforeload',function(e){if(e.target===c){s=!0}else if(!e.target.hasAttribute('nomodule')||!s){return}e.preventDefault()},!0);c.type='module';c.src='.';d.head.appendChild(c);c.remove()}}())`;
+
+const selfScript = `self.m=1`;
+const loadScript = 'function $l(e,d,c){c=document.createElement("script"),self.m?(e && (c.src=e,c.type="module")):d && (c.src=d),c.src && document.head.appendChild(c)}';
+const makeLoadScript = (modern, legacy) => `
+addEventListener('load', function() {
+  ${(modern.length > legacy.length ? modern : legacy).reduce((acc, _m, i) => `
+${acc}$l(${modern[i] ? `"${modern[i].attributes.src}"` : undefined}, ${legacy[i] ? `"${legacy[i].attributes.src}"` : undefined})
+  `, '').trim()}
+})
+${loadScript}
+`;
 
 class HtmlWebpackEsmodulesPlugin {
-  constructor(mode = 'modern', async = false) {
-    this.async = async;
+  constructor(mode = 'modern') {
     switch (mode) {
       case 'module':
       case 'modern':
@@ -26,34 +35,26 @@ class HtmlWebpackEsmodulesPlugin {
 
   apply(compiler) {
     compiler.hooks.compilation.tap(ID, compilation => {
+      // Support newest and oldest version.
       if (HtmlWebpackPlugin.getHooks) {
         HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tapAsync(
           ID,
           this.alterAssetTagGroups.bind(this, compiler)
         );
-        HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(ID, this.beforeEmitHtml.bind(this));
       } else {
         compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync(
           ID,
           this.alterAssetTagGroups.bind(this, compiler)
         );
-        compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tap(ID, this.beforeEmitHtml.bind(this));
       }
     });
   }
 
-  beforeEmitHtml(data) {
-    data.html = data.html.replace(/\snomodule="">/g, ' nomodule>');
-    if (this.async) {
-      data.html = data.html.replace(/\sasync=""/g, ' async');
-    }
-    // TODO: replace async if needed
-  }
+  alterAssetTagGroups(compiler, { plugin, bodyTags: body, headTags: head, ...rest }, cb) {
+    // Older webpack compat
+    if (!body) body = rest.body;
+    if (!head) head = rest.head;
 
-  alterAssetTagGroups(compiler, { plugin, bodyTags: body, ...rest }, cb) {
-    if (!body) {
-      body = rest.body;
-    }
     const targetDir = compiler.options.output.path;
     // get stats, write to disk
     const htmlName = path.basename(plugin.options.filename);
@@ -74,12 +75,13 @@ class HtmlWebpackEsmodulesPlugin {
       );
       if (this.mode === 'legacy') {
         // Empty nomodule in legacy build
-        newBody.forEach(a => (a.attributes.nomodule = ''));
+        newBody.forEach(a => {
+          a.attributes.nomodule = '';
+        });
       } else {
         // Module in the new build
         newBody.forEach(a => {
           a.attributes.type = 'module';
-          if (this.async) tag.attributes.async = '';
         });
       }
       // Write it!
@@ -87,17 +89,12 @@ class HtmlWebpackEsmodulesPlugin {
       // Tell the compiler to continue.
       return cb();
     }
-    // Draw the existing html because we are in iteration 2.
-    const existingAssets = JSON.parse(
-      fs.readFileSync(tempFilename, 'utf-8')
-    );
 
     if (this.mode === 'modern') {
       // If we are in modern make the type a module.
       body.forEach(tag => {
         if (tag.tagName === 'script' && tag.attributes) {
           tag.attributes.type = 'module';
-          if (this.async) tag.attributes.async = '';
         }
       });
     } else {
@@ -109,19 +106,25 @@ class HtmlWebpackEsmodulesPlugin {
       });
     }
 
-    const safariFixScript = {
-      tagName: 'script',
-      closeTag: true,
-      innerHTML: safariFix,
-    }
+    // Draw the existing html because we are in iteration 2.
+    const existingAssets = JSON.parse(
+      fs.readFileSync(tempFilename, 'utf-8')
+    );
 
-    body.push(safariFixScript);
-    body.push(...existingAssets);
+    const legacyScripts = (this.modern ? existingAssets : body).filter(tag => tag.tagName === 'script' && tag.attributes.type !== 'module');
+    const modernScripts = (this.modern ? body : existingAssets).filter(tag => tag.tagName === 'script' && tag.attributes.type === 'module');
+    const scripts = body.filter(tag => tag.tagName === 'script');
+    scripts.forEach(s => {
+      body.splice(body.indexOf(s), 1);
+    })
 
-    // Make our array look like [modern, script, legacy]
-    if (this.mode === 'legacy') {
-      body.reverse();
-    }
+    modernScripts.forEach(modernScript => {
+      head.push({ tagName: 'link', attributes: { rel: 'modulepreload', href: modernScript.attributes.src } });
+    })
+    const loadScript = makeLoadScript(modernScripts, legacyScripts);
+    head.push({ tagName: 'script', attributes: { type: 'module' }, innerHTML: selfScript, voidTag: false });
+    head.push({ tagName: 'script', innerHTML: loadScript, voidTag: false });
+
     fs.removeSync(tempFilename);
     cb();
   }
