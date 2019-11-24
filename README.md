@@ -13,13 +13,11 @@ or
 
 ## Why
 
-This automates the generation of module-nomodule scripts aswell as the safari fix.
+This automates the generation of module-nomodule scripts.
 
-This project relies on [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin)
+This project relies on [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin).
 
-[Safari fix](https://gist.github.com/samthor/64b114e4a4f539915a95b91ffd340acc)
-
-[module-nomodule](https://philipwalton.com/articles/deploying-es2015-code-in-production-today/)
+[module-nomodule](https://philipwalton.com/articles/deploying-es2015-code-in-production-today/) explained.
 
 ## How to use
 
