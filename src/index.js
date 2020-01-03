@@ -111,8 +111,9 @@ class HtmlWebpackEsmodulesPlugin {
       fs.readFileSync(tempFilename, 'utf-8')
     );
 
-    const legacyScripts = (this.modern ? existingAssets : body).filter(tag => tag.tagName === 'script' && tag.attributes.type !== 'module');
-    const modernScripts = (this.modern ? body : existingAssets).filter(tag => tag.tagName === 'script' && tag.attributes.type === 'module');
+    const isModern = this.mode === 'modern';
+    const legacyScripts = (isModern ? existingAssets : body).filter(tag => tag.tagName === 'script' && tag.attributes.type !== 'module');
+    const modernScripts = (isModern ? body : existingAssets).filter(tag => tag.tagName === 'script' && tag.attributes.type === 'module');
     const scripts = body.filter(tag => tag.tagName === 'script');
     scripts.forEach(s => {
       body.splice(body.indexOf(s), 1);
