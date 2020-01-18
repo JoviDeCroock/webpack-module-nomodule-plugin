@@ -1,6 +1,6 @@
 # Webpack module-nomodule plugin
 
-[![npm version](https://badge.fury.io/js/webpack-module-nomodule-plugin.svg)](https://badge.fury.io/js/webpack-module-nomodule-plugin)
+[![npm version](https://badgen.net/npm/v/webpack-module-nomodule-plugin)](https://www.npmjs.com/package/webpack-module-nomodule-plugin)
 
 
 ## Installation
