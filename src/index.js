@@ -3,22 +3,12 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const fs = require('fs-extra');
-
-const ID = 'html-webpack-esmodules-plugin';
-
-const selfScript = `self.m=1`;
-const loadScript = 'function $l(e,d,c){c=document.createElement("script"),self.m?(e && (c.src=e,c.type="module")):d && (c.src=d),c.src && document.head.appendChild(c)}';
-const makeLoadScript = (modern, legacy) => `
-addEventListener('load', function() {
-  ${(modern.length > legacy.length ? modern : legacy).reduce((acc, _m, i) => `
-${acc}$l(${modern[i] ? `"${modern[i].attributes.src}"` : undefined}, ${legacy[i] ? `"${legacy[i].attributes.src}"` : undefined})
-  `, '').trim()}
-})
-${loadScript}
-`;
+const { OUTPUT_MODES, selfScript, safariFixScript, ID } = require('./constants');
+const { makeLoadScript } = require('./utils');
 
 class HtmlWebpackEsmodulesPlugin {
-  constructor(mode = 'modern') {
+  constructor(mode = 'modern', outputMode = OUTPUT_MODES.EFFICIENT) {
+    this.outputMode = outputMode;
     switch (mode) {
       case 'module':
       case 'modern':
@@ -90,6 +80,11 @@ class HtmlWebpackEsmodulesPlugin {
       return cb();
     }
 
+    // Draw the existing html because we are in iteration 2.
+    const existingAssets = JSON.parse(
+      fs.readFileSync(tempFilename, 'utf-8')
+    );
+
     if (this.mode === 'modern') {
       // If we are in modern make the type a module.
       body.forEach(tag => {
@@ -106,11 +101,17 @@ class HtmlWebpackEsmodulesPlugin {
       });
     }
 
-    // Draw the existing html because we are in iteration 2.
-    const existingAssets = JSON.parse(
-      fs.readFileSync(tempFilename, 'utf-8')
-    );
+    if (this.outputMode === OUTPUT_MODES.MINIMAL) {
+      this.sizeEfficient(existingAssets, body);
+    } else if (this.outputMode === OUTPUT_MODES.EFFICIENT) {
+      this.downloadEfficient(existingAssets, body, head);
+    }
 
+    fs.removeSync(tempFilename);
+    cb();
+  }
+
+  downloadEfficient(existingAssets, body, head) {
     const isModern = this.mode === 'modern';
     const legacyScripts = (isModern ? existingAssets : body).filter(tag => tag.tagName === 'script' && tag.attributes.type !== 'module');
     const modernScripts = (isModern ? body : existingAssets).filter(tag => tag.tagName === 'script' && tag.attributes.type === 'module');
@@ -121,14 +122,29 @@ class HtmlWebpackEsmodulesPlugin {
 
     modernScripts.forEach(modernScript => {
       head.push({ tagName: 'link', attributes: { rel: 'modulepreload', href: modernScript.attributes.src } });
-    })
+    });
+
     const loadScript = makeLoadScript(modernScripts, legacyScripts);
     head.push({ tagName: 'script', attributes: { type: 'module' }, innerHTML: selfScript, voidTag: false });
     head.push({ tagName: 'script', innerHTML: loadScript, voidTag: false });
+  }
 
-    fs.removeSync(tempFilename);
-    cb();
+  sizeEfficient(existingAssets, body) {
+    const safariFixScriptTag = {
+      tagName: 'script',
+      closeTag: true,
+      innerHTML: safariFixScript,
+    }
+
+    body.push(safariFixScriptTag);
+    body.push(...existingAssets);
+
+    // Make our array look like [modern, script, legacy]
+    if (this.mode === 'legacy') {
+      body.reverse();
+    }
   }
 }
 
+exports.OUTPUT_MODES = OUTPUT_MODES;
 module.exports = HtmlWebpackEsmodulesPlugin;
