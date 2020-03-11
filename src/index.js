@@ -31,11 +31,17 @@ class HtmlWebpackEsmodulesPlugin {
           ID,
           this.alterAssetTagGroups.bind(this, compiler)
         );
+        if (this.outputMode === OUTPUT_MODES.MINIMAL) {
+          HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(ID, this.beforeEmitHtml.bind(this));
+        }
       } else {
         compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync(
           ID,
           this.alterAssetTagGroups.bind(this, compiler)
         );
+        if (this.outputMode === OUTPUT_MODES.MINIMAL) {
+          compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tap(ID, this.beforeEmitHtml.bind(this));
+        }
       }
     });
   }
@@ -109,6 +115,10 @@ class HtmlWebpackEsmodulesPlugin {
 
     fs.removeSync(tempFilename);
     cb();
+  }
+
+  beforeEmitHtml(data) {
+    data.html = data.html.replace(/\snomodule="">/g, ' nomodule>');
   }
 
   downloadEfficient(existingAssets, body, head) {
