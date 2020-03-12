@@ -29,6 +29,26 @@ this to this plugin like this:
 
 The rest will be handled for you!
 
+## Output modes
+
+The second argument to `WebpackModuleNomodulePlugin` allows you to specify an output mode.
+
+At this point there are two:
+
+- efficient (default)
+- minimal
+
+These are exported as an object containing `OUTPUT_MODES`.
+
+### Efficient
+
+Ensures IE11 and some Edge versions won't double download the contents of your scripts.
+This adds some more size to your html file and defers the loading of scripts.
+
+### Minimal
+
+Makes the most minimal output possible, this will be downloaded twice on older Edge and IE11.
+
 ## Example
 
 https://github.com/JoviDeCroock/POC-ModularLegacyBuild
