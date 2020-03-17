@@ -24,8 +24,8 @@ This project relies on [html-webpack-plugin](https://github.com/jantimon/html-we
 The only thing you need to do is return two build steps in your webpack and forward
 this to this plugin like this:
 
-- for legacy new WebpackModuleNomodulePlugin({ mode: 'legacy' });
-- for modern new WebpackModuleNomodulePlugin({ mode: 'modern' });
+- for legacy new WebpackModuleNomodulePlugin('legacy');
+- for modern new WebpackModuleNomodulePlugin('modern');
 
 The rest will be handled for you!
 
