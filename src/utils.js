@@ -1,4 +1,4 @@
-const { loadScript } = require('./constants'); 
+const { loadScript } = require('./constants');
 
 exports.makeLoadScript = (modern, legacy) => `
 addEventListener('load', function() {

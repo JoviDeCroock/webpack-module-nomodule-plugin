@@ -1,11 +1,10 @@
 {
-  "name": "webpack-module-nomodule-plugin",
-  "version": "0.3.0",
+  "name": "webpack-module-nomodule-plugin2",
+  "version": "0.3.1",
   "license": "MIT",
   "description": "Automates the integration of module/nomodule bundles in your html.",
   "author": "Jovi De Croock <decroockjovi@gmail.com> (https://github.com/jovidecroock)",
   "main": "src/index.js",
-  "files": ["src/index.js"],
   "scripts": {},
   "devDependencies": {
     "webpack": "^4.41.2"
