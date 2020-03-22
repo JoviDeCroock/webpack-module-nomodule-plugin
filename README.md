@@ -47,7 +47,7 @@ This adds some more size to your html file and defers the loading of scripts.
 
 This will look something like this:
 
-![efficient mode output][./assets/efficient_mode.jpg]
+![efficient mode output](./assets/efficient_mode.jpg)
 
 ### Minimal
 
@@ -55,7 +55,7 @@ Makes the most minimal output possible, this will be downloaded twice on older E
 
 This will look something like this:
 
-![minimal mode output][./assets/minimal.png]
+![minimal mode output](./assets/minimal.png)
 
 The script in the middle between `type="module"` and `nomodule` is meant for safari 11 compat.
 
