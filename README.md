@@ -45,9 +45,19 @@ These are exported as an object containing `OUTPUT_MODES`.
 Ensures IE11 and some Edge versions won't double download the contents of your scripts.
 This adds some more size to your html file and defers the loading of scripts.
 
+This will look something like this:
+
+![efficient mode output][./assets/efficient_mode.jpg]
+
 ### Minimal
 
 Makes the most minimal output possible, this will be downloaded twice on older Edge and IE11.
+
+This will look something like this:
+
+![minimal mode output][./assets/minimal.png]
+
+The script in the middle between `type="module"` and `nomodule` is meant for safari 11 compat.
 
 ## Example
 
