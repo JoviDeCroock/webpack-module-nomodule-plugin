@@ -49,6 +49,10 @@ This will look something like this:
 
 ![efficient mode output](./assets/efficient_mode.jpg)
 
+What happens in this picture?
+- We declare the modern javascript files as `modulepreload` to shave a bit off the load/parse time of these
+- We dynamically inject the entry-modules with the bigger script to avoid injecting needlessly
+
 ### Minimal
 
 Makes the most minimal output possible, this will be downloaded twice on older Edge and IE11.
@@ -58,6 +62,9 @@ This will look something like this:
 ![minimal mode output](./assets/minimal.png)
 
 The script in the middle between `type="module"` and `nomodule` is meant for safari 11 compat.
+
+`nomodule` will load for browsers who don't support `module` and the other way around, the problem with this approach is
+we'll be downloading both bundles on certain Edge versions and IE11.
 
 ## Example
 
