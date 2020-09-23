@@ -3,7 +3,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const fs = require('fs-extra');
-const { OUTPUT_MODES, selfScript, safariFixScript, ID } = require('./constants');
+const { OUTPUT_MODES, safariFixScript, ID } = require('./constants');
 const { makeLoadScript } = require('./utils');
 
 class HtmlWebpackEsmodulesPlugin {
@@ -135,7 +135,6 @@ class HtmlWebpackEsmodulesPlugin {
     });
 
     const loadScript = makeLoadScript(modernScripts, legacyScripts);
-    head.push({ tagName: 'script', attributes: { type: 'module' }, innerHTML: selfScript, voidTag: false });
     head.push({ tagName: 'script', innerHTML: loadScript, voidTag: false });
   }
 
