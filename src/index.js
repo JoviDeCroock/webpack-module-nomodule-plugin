@@ -145,12 +145,11 @@ class HtmlWebpackEsmodulesPlugin {
       innerHTML: safariFixScript,
     }
 
-    body.push(safariFixScriptTag);
-    body.push(...existingAssets);
-
     // Make our array look like [modern, script, legacy]
     if (this.mode === 'legacy') {
-      body.reverse();
+      body.unshift(...existingAssets, safariFixScriptTag);
+    } else {
+      body.push(safariFixScriptTag, ...existingAssets);
     }
   }
 }
