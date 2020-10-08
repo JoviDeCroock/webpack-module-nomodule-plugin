@@ -28,7 +28,7 @@ class HtmlWebpackEsmodulesPlugin {
       // Support newest and oldest version.
       if (HtmlWebpackPlugin.getHooks) {
         HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tapAsync(
-          ID,
+          { name: ID, stage: Infinity },
           this.alterAssetTagGroups.bind(this, compiler)
         );
         if (this.outputMode === OUTPUT_MODES.MINIMAL) {
@@ -36,7 +36,7 @@ class HtmlWebpackEsmodulesPlugin {
         }
       } else {
         compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync(
-          ID,
+          { name: ID, stage: Infinity },
           this.alterAssetTagGroups.bind(this, compiler)
         );
         if (this.outputMode === OUTPUT_MODES.MINIMAL) {
