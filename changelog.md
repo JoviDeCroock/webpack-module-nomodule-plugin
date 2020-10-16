@@ -1,3 +1,7 @@
+## 1.0.1
+
+- Add crossorigin=anonymous attribute to module scripts [#19](https://github.com/JoviDeCroock/webpack-module-nomodule-plugin/pull/19)
+
 ## 1.0.0
 
 - Set alterAssetTagGroups hook execution order. [#17](https://github.com/JoviDeCroock/webpack-module-nomodule-plugin/pull/17)
