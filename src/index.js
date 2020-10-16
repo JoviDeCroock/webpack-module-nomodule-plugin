@@ -78,6 +78,7 @@ class HtmlWebpackEsmodulesPlugin {
         // Module in the new build
         newBody.forEach(a => {
           a.attributes.type = 'module';
+          a.attributes.crossOrigin = 'anonymous';
         });
       }
       // Write it!
@@ -96,6 +97,7 @@ class HtmlWebpackEsmodulesPlugin {
       body.forEach(tag => {
         if (tag.tagName === 'script' && tag.attributes) {
           tag.attributes.type = 'module';
+          tag.attributes.crossOrigin = 'anonymous';
         }
       });
     } else {
