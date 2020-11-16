@@ -40,7 +40,13 @@ class HtmlWebpackEsmodulesPlugin {
           this.alterAssetTagGroups.bind(this, compiler)
         );
         if (this.outputMode === OUTPUT_MODES.MINIMAL) {
-          compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tap(ID, this.beforeEmitHtml.bind(this));
+          if (compilation.hooks.htmlWebpackPluginAfterHtmlProcessing) {
+            compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tap(ID, this.beforeEmitHtml.bind(this));
+          }
+          
+          if (compilation.hooks.beforeEmit) {
+            compilation.hooks.beforeEmit.tap(ID, this.beforeEmitHtml.bind(this));
+          }
         }
       }
     });
