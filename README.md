@@ -21,11 +21,9 @@ This project relies on [html-webpack-plugin](https://github.com/jantimon/html-we
 
 ## How to use
 
-The only thing you need to do is return two build steps in your webpack and forward
-this to this plugin like this:
-
-- for legacy new WebpackModuleNomodulePlugin('legacy');
-- for modern new WebpackModuleNomodulePlugin('modern');
+1. Create separate build steps for your modern and legacy builds in your webpack config.  
+1. Each build step should include at least one use of the `html-webpack-plugin` with the `inject: 'body'` option set.
+1. Include this plugin with the name of the configuration in the constructor (e.g. `new WebpackModuleNomodulePlugin('legacy');` or `new WebpackModuleNomodulePlugin('modern');`)
 
 The rest will be handled for you!
 

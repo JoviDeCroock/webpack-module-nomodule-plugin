@@ -29,7 +29,7 @@ class HtmlWebpackEsmodulesPlugin {
       if (HtmlWebpackPlugin.getHooks) {
         HtmlWebpackPlugin.getHooks(compilation).alterAssetTagGroups.tapAsync(
           { name: ID, stage: Infinity },
-          this.alterAssetTagGroups.bind(this, compiler)
+          this.alterAssetTagGroups.bind(this, compiler, compilation)
         );
         if (this.outputMode === OUTPUT_MODES.MINIMAL) {
           HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tap(ID, this.beforeEmitHtml.bind(this));
@@ -37,7 +37,7 @@ class HtmlWebpackEsmodulesPlugin {
       } else {
         compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync(
           { name: ID, stage: Infinity },
-          this.alterAssetTagGroups.bind(this, compiler)
+          this.alterAssetTagGroups.bind(this, compiler, compilation)
         );
         if (this.outputMode === OUTPUT_MODES.MINIMAL) {
           compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tap(ID, this.beforeEmitHtml.bind(this));
@@ -46,7 +46,7 @@ class HtmlWebpackEsmodulesPlugin {
     });
   }
 
-  alterAssetTagGroups(compiler, { plugin, bodyTags: body, headTags: head, ...rest }, cb) {
+  alterAssetTagGroups(compiler, compilation, { plugin, bodyTags: body, headTags: head, ...rest }, cb) {
     // Older webpack compat
     if (!body) body = rest.body;
     if (!head) head = rest.head;
@@ -56,11 +56,13 @@ class HtmlWebpackEsmodulesPlugin {
     const htmlName = path.basename(plugin.options.filename);
     // Watch out for output files in sub directories
     const htmlPath = path.dirname(plugin.options.filename);
-    // Make the temporairy html to store the scripts in
+    // Name the asset based on the name of the file being transformed by HtmlWebpackPlugin
+    const assetName = `assets-${htmlName}.json`;
+    // Make the temporary html to store the scripts in
     const tempFilename = path.join(
       targetDir,
       htmlPath,
-      `assets-${htmlName}.json`
+      assetName
     );
     // If this file does not exist we are in iteration 1
     if (!fs.existsSync(tempFilename)) {
@@ -82,10 +84,19 @@ class HtmlWebpackEsmodulesPlugin {
         });
       }
       // Write it!
-      fs.writeFileSync(tempFilename, JSON.stringify(newBody));
+      const assetContents = JSON.stringify(newBody);
+      fs.writeFileSync(tempFilename, assetContents);
+
+      // Add the tempfile as an asset so that it will be transformed 
+      // in the PROCESS_ASSETS_STAGE_OPTIMIZE_HASH stage when true
+      // asset hashes are generated
+      const { webpack } = compiler;
+      const { RawSource } = webpack.sources;
+
+      compilation.emitAsset(assetName, new RawSource(assetContents));
       // Tell the compiler to continue.
       return cb();
-    }
+    } 
 
     // Draw the existing html because we are in iteration 2.
     const existingAssets = JSON.parse(
