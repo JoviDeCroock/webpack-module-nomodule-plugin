@@ -83,17 +83,12 @@ class HtmlWebpackEsmodulesPlugin {
           a.attributes.crossOrigin = 'anonymous';
         });
       }
-      // Write it!
-      const assetContents = JSON.stringify(newBody);
-      fs.writeFileSync(tempFilename, assetContents);
-
       // Add the tempfile as an asset so that it will be transformed 
-      // in the PROCESS_ASSETS_STAGE_OPTIMIZE_HASH stage when true
-      // asset hashes are generated
+      // in the PROCESS_ASSETS_STAGE_OPTIMIZE_HASH stage when 
+      // "true asset hashes" are generated
       const { webpack } = compiler;
       const { RawSource } = webpack.sources;
-
-      compilation.emitAsset(assetName, new RawSource(assetContents));
+      compilation.emitAsset(assetName, new RawSource(JSON.stringify(newBody)));
       // Tell the compiler to continue.
       return cb();
     } 
