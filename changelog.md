@@ -1,3 +1,7 @@
+## 1.1.0
+
+- Add webpack 5 support [#29](https://github.com/JoviDeCroock/webpack-module-nomodule-plugin/pull/29)
+
 ## 1.0.1
 
 - Add crossorigin=anonymous attribute to module scripts [#19](https://github.com/JoviDeCroock/webpack-module-nomodule-plugin/pull/19)
