@@ -61,7 +61,7 @@ class HtmlWebpackEsmodulesPlugin {
     // Watch out for output files in sub directories
     const htmlPath = path.dirname(plugin.options.filename);
     // Name the asset based on the name of the file being transformed by HtmlWebpackPlugin
-    const assetName = `${htmlPath}/assets-${htmlName}.json`;
+    const assetName = path.join(htmlPath, `assets-${htmlName}.json`);
     // Make the temporary html to store the scripts in
     const tempFilename = path.join(
       targetDir,
