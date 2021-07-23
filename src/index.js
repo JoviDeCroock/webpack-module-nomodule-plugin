@@ -5,6 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const fs = require('fs-extra');
 const { OUTPUT_MODES, safariFixScript, ID } = require('./constants');
 const { makeLoadScript } = require('./utils');
+const { version } = require('webpack');
 
 class HtmlWebpackEsmodulesPlugin {
   constructor(mode = 'modern', outputMode = OUTPUT_MODES.EFFICIENT) {
@@ -21,7 +22,10 @@ class HtmlWebpackEsmodulesPlugin {
       default:
         throw new Error(`The mode has to be one of: [modern, legacy, module, nomodule], you provided ${mode}.`);
     }
+    this._isWebpack5 = (version.split('.')[0] === '5');
   }
+
+  _isWebpack5 = false;
 
   apply(compiler) {
     compiler.hooks.compilation.tap(ID, compilation => {
@@ -57,11 +61,10 @@ class HtmlWebpackEsmodulesPlugin {
     // Watch out for output files in sub directories
     const htmlPath = path.dirname(plugin.options.filename);
     // Name the asset based on the name of the file being transformed by HtmlWebpackPlugin
-    const assetName = `assets-${htmlName}.json`;
+    const assetName = path.join(htmlPath, `assets-${htmlName}.json`);
     // Make the temporary html to store the scripts in
     const tempFilename = path.join(
       targetDir,
-      htmlPath,
       assetName
     );
     // If this file does not exist we are in iteration 1
@@ -83,12 +86,16 @@ class HtmlWebpackEsmodulesPlugin {
           a.attributes.crossOrigin = 'anonymous';
         });
       }
-      // Add the tempfile as an asset so that it will be transformed 
-      // in the PROCESS_ASSETS_STAGE_OPTIMIZE_HASH stage when 
-      // "true asset hashes" are generated
-      const { webpack } = compiler;
-      const { RawSource } = webpack.sources;
-      compilation.emitAsset(assetName, new RawSource(JSON.stringify(newBody)));
+      const assetContents = JSON.stringify(newBody);
+      if(this._isWebpack5) {
+        const { RawSource } = require('webpack-sources');
+        // webpack5: Add the tempfile as an asset so that it will be transformed 
+        // in the PROCESS_ASSETS_STAGE_OPTIMIZE_HASH stage when 
+        // "true asset hashes" are generated
+        compilation.emitAsset(assetName, new RawSource(assetContents));
+      }
+      // Also write the file immediately to avoid race-conditions
+      fs.writeFileSync(tempFilename, assetContents);
       // Tell the compiler to continue.
       return cb();
     } 
@@ -121,6 +128,9 @@ class HtmlWebpackEsmodulesPlugin {
       this.downloadEfficient(existingAssets, body, head);
     }
 
+    if(this._isWebpack5) {
+      compilation.deleteAsset(assetName);
+    }
     fs.removeSync(tempFilename);
     cb();
   }
