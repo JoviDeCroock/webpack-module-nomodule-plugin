@@ -1,3 +1,7 @@
+## 1.1.1
+
+- Webpack 4 and 5 fixes [#30](https://github.com/JoviDeCroock/webpack-module-nomodule-plugin/pull/30)
+
 ## 1.1.0
 
 - Add webpack 5 support [#29](https://github.com/JoviDeCroock/webpack-module-nomodule-plugin/pull/29)
