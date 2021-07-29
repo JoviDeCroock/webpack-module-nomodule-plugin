@@ -25,9 +25,19 @@ class HtmlWebpackEsmodulesPlugin {
     this._isWebpack5 = (version.split('.')[0] === '5');
   }
 
+  static fileAwaiters = new Map(); // Map<filename: string, promise: ResolvablePromise>()
+
   _isWebpack5 = false;
 
   apply(compiler) {
+    compiler.hooks.afterEmit.tap(ID, _ => {
+      // resolve all of the iteration 1 promises as we are in afterEmit
+      // and all asset processing will be complete by now
+      HtmlWebpackEsmodulesPlugin.fileAwaiters.forEach(item => {
+        item.resolve();
+      });
+    });
+
     compiler.hooks.compilation.tap(ID, compilation => {
       // Support newest and oldest version.
       if (HtmlWebpackPlugin.getHooks) {
@@ -69,7 +79,10 @@ class HtmlWebpackEsmodulesPlugin {
     );
     // If this file does not exist we are in iteration 1
     if (!fs.existsSync(tempFilename)) {
+      // create the tempfile now to prevent re-entrancy of iteration 1
       fs.mkdirpSync(path.dirname(tempFilename));
+      // add a promise to the fileAwaiters map so that we can correctly synchronise iteration 2
+      HtmlWebpackEsmodulesPlugin.fileAwaiters.set(tempFilename, resolvablePromise());
       // Only keep the scripts so we can't add css etc twice.
       const newBody = body.filter(
         a => a.tagName === 'script' && a.attributes
@@ -100,39 +113,45 @@ class HtmlWebpackEsmodulesPlugin {
       return cb();
     } 
 
-    // Draw the existing html because we are in iteration 2.
-    const existingAssets = JSON.parse(
-      fs.readFileSync(tempFilename, 'utf-8')
-    );
+    // get the promise created in iteration 1
+    const synchronisationPromise = HtmlWebpackEsmodulesPlugin.fileAwaiters.get(tempFilename);
 
-    if (this.mode === 'modern') {
-      // If we are in modern make the type a module.
-      body.forEach(tag => {
-        if (tag.tagName === 'script' && tag.attributes) {
-          tag.attributes.type = 'module';
-          tag.attributes.crossOrigin = 'anonymous';
-        }
-      });
-    } else {
-      // If we are in legacy fill nomodule.
-      body.forEach(tag => {
-        if (tag.tagName === 'script' && tag.attributes) {
-          tag.attributes.nomodule = '';
-        }
-      });
-    }
+    // wait on iteration 1 completing
+    synchronisationPromise.then(() => {
+      // Draw the existing html because we are in iteration 2.
+      const existingAssets = JSON.parse(
+        fs.readFileSync(tempFilename, 'utf-8')
+      );
 
-    if (this.outputMode === OUTPUT_MODES.MINIMAL) {
-      this.sizeEfficient(existingAssets, body);
-    } else if (this.outputMode === OUTPUT_MODES.EFFICIENT) {
-      this.downloadEfficient(existingAssets, body, head);
-    }
+      if (this.mode === 'modern') {
+        // If we are in modern make the type a module.
+        body.forEach(tag => {
+          if (tag.tagName === 'script' && tag.attributes) {
+            tag.attributes.type = 'module';
+            tag.attributes.crossOrigin = 'anonymous';
+          }
+        });
+      } else {
+        // If we are in legacy fill nomodule.
+        body.forEach(tag => {
+          if (tag.tagName === 'script' && tag.attributes) {
+            tag.attributes.nomodule = '';
+          }
+        });
+      }
 
-    if(this._isWebpack5) {
-      compilation.deleteAsset(assetName);
-    }
-    fs.removeSync(tempFilename);
-    cb();
+      if (this.outputMode === OUTPUT_MODES.MINIMAL) {
+        this.sizeEfficient(existingAssets, body);
+      } else if (this.outputMode === OUTPUT_MODES.EFFICIENT) {
+        this.downloadEfficient(existingAssets, body, head);
+      }
+
+      if(this._isWebpack5) {
+        compilation.deleteAsset(assetName);
+      }
+      fs.removeSync(tempFilename);
+      cb();
+    });
   }
 
   beforeEmitHtml(data) {
@@ -171,6 +190,18 @@ class HtmlWebpackEsmodulesPlugin {
     }
   }
 }
+
+function resolvablePromise() {
+  let resolve, reject;
+  const p = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  p.resolve = resolve;
+  p.reject = reject;
+  return p;
+}
+
 
 exports.OUTPUT_MODES = OUTPUT_MODES;
 module.exports = HtmlWebpackEsmodulesPlugin;
